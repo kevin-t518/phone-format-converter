@@ -1,0 +1,15 @@
+{
+  "name": "phone-format-converter",
+  "version": "0.1.0",
+  "description": "Converts phone numbers between E.164 and national NANP formatting, including a streaming CLI",
+  "type": "module",
+  "main": "dist/converter.js",
+  "bin": {
+    "phoneconv": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "license": "MIT",
+  "author": "kevin-t518"
+}
