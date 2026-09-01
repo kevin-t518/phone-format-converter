@@ -50,14 +50,24 @@ $ printf '+15551234567\n(555) 987-6543\n' | node dist/cli.js
 +15559876543
 ```
 
+Run the tests with:
+
+```sh
+npm test
+```
+
+This project uses Node's built-in test runner (`node:test`), so there's
+nothing to install — `tsc` compiles the `.test.ts` files alongside the
+library and `node --test` runs the compiled output.
+
 ## Status
 
-Working skeleton: NANP conversion in both directions, plus a streaming CLI.
-No test suite yet.
+NANP conversion in both directions, a streaming CLI, and a test suite
+covering round-trips and malformed input for both the converter and the
+line stream.
 
 ## Roadmap
 
-- add a proper test suite (round-trip and malformed-input cases)
 - support E.123 international formatting, not just NANP national
 - extend beyond NANP to other countries' numbering plans
 - CSV input/output mode (convert one column, pass the rest through)
