@@ -6,20 +6,26 @@ sorts consistently. People typing into a form write `(555) 123-4567`. Moving
 data between the two by hand, or with a pile of one-off regexes, gets old
 fast.
 
-This is a small converter between E.164 and NANP national formatting
-(US/Canada numbering plan only, for now — see Roadmap). It detects which of
-the two formats it was given and converts to the other one.
+This is a small converter between E.164, NANP national formatting, and E.123
+international formatting (US/Canada numbering plan only, for now — see
+Roadmap). It detects which format it was given and converts accordingly:
+E.164 and national toggle between each other, and E.123 — which is really
+just E.164 with spaces instead of a compact digit string — normalizes down
+to E.164.
 
 ## Library usage
 
 ```ts
-import { convert, toE164, toNational } from "./src/converter.js";
+import { convert, toE164, toNational, toE123, fromE123 } from "./src/converter.js";
 
 convert("+15551234567");     // "(555) 123-4567"
 convert("(555) 123-4567");   // "+15551234567"
+convert("+1 555 123 4567");  // "+15551234567"
 
 toE164("(555) 123-4567");    // "+15551234567"
 toNational("+15551234567");  // "(555) 123-4567"
+toE123("+15551234567");      // "+1 555 123 4567"
+fromE123("+1 555 123 4567"); // "+15551234567"
 ```
 
 Malformed input throws `PhoneFormatError` rather than returning something
@@ -62,13 +68,12 @@ library and `node --test` runs the compiled output.
 
 ## Status
 
-NANP conversion in both directions, a streaming CLI, and a test suite
-covering round-trips and malformed input for both the converter and the
-line stream.
+NANP conversion between E.164, national, and E.123 formatting, a streaming
+CLI, and a test suite covering round-trips and malformed input for both the
+converter and the line stream.
 
 ## Roadmap
 
-- support E.123 international formatting, not just NANP national
 - extend beyond NANP to other countries' numbering plans
 - CSV input/output mode (convert one column, pass the rest through)
 - `--format` flag to force output format instead of auto-detecting

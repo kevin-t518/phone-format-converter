@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { convert, detectFormat, toE164, toNational, PhoneFormatError } from "./converter.js";
+import { convert, detectFormat, toE164, toNational, toE123, fromE123, PhoneFormatError } from "./converter.js";
 
 test("detectFormat recognizes e164", () => {
   assert.equal(detectFormat("+15551234567"), "e164");
@@ -67,4 +67,37 @@ test("convert throws PhoneFormatError on garbage input", () => {
 
 test("convert throws on an empty string", () => {
   assert.throws(() => convert(""), PhoneFormatError);
+});
+
+test("detectFormat recognizes e123", () => {
+  assert.equal(detectFormat("+1 202 555 0136"), "e123");
+});
+
+test("toE123 converts an e164 number", () => {
+  assert.equal(toE123("+12025550136"), "+1 202 555 0136");
+});
+
+test("toE123 rejects a malformed e164 string", () => {
+  assert.throws(() => toE123("(202) 555-0136"), PhoneFormatError);
+});
+
+test("fromE123 converts to e164", () => {
+  assert.equal(fromE123("+1 202 555 0136"), "+12025550136");
+});
+
+test("fromE123 rejects an area code starting with 1", () => {
+  assert.throws(() => fromE123("+1 102 555 0136"), PhoneFormatError);
+});
+
+test("fromE123 rejects a malformed e123 string", () => {
+  assert.throws(() => fromE123("+1 202-555-0136"), PhoneFormatError);
+});
+
+test("convert round-trips e164 -> e123 -> e164", () => {
+  const original = "+12025550136";
+  assert.equal(fromE123(toE123(original)), original);
+});
+
+test("convert normalizes e123 input to e164", () => {
+  assert.equal(convert("+1 202 555 0136"), "+12025550136");
 });

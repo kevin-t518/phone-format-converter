@@ -43,6 +43,11 @@ test("strips a trailing carriage return", async () => {
   assert.equal(output, "(555) 123-4567\n");
 });
 
+test("converts an e123 line to e164", async () => {
+  const output = await run(["+1 202 555 0136\n"]);
+  assert.equal(output, "+12025550136\n");
+});
+
 test("onError replacement is emitted in place of the bad line", async () => {
   const output = await run(["not a number\n+15551234567\n"], {
     onError: () => "REPLACED",
