@@ -6,22 +6,29 @@ sorts consistently. People typing into a form write `(555) 123-4567`. Moving
 data between the two by hand, or with a pile of one-off regexes, gets old
 fast.
 
-This is a small converter between E.164, NANP national formatting, and E.123
-international formatting (US/Canada numbering plan only, for now — see
-Roadmap). It detects which format it was given and converts accordingly:
-E.164 and national toggle between each other, and E.123 — which is really
-just E.164 with spaces instead of a compact digit string — normalizes down
-to E.164.
+This is a small converter between E.164, national formatting, and E.123
+international formatting. It detects which format it was given and converts
+accordingly: E.164 and national toggle between each other, and E.123 — which
+is really just E.164 with spaces instead of a compact digit string —
+normalizes down to E.164.
+
+Numbering plans are pluggable internally (see `NumberingPlan` in
+`src/converter.ts`), but only NANP (US/Canada) and France are wired up so
+far — see Roadmap for where this is headed.
 
 ## Library usage
 
 ```ts
-import { convert, toE164, toNational, toE123, fromE123 } from "./src/converter.js";
+import { convert, detectFormat, toE164, toNational, toE123, fromE123 } from "./src/converter.js";
 
+// convert() and detectFormat() try every registered numbering plan.
 convert("+15551234567");     // "(555) 123-4567"
 convert("(555) 123-4567");   // "+15551234567"
 convert("+1 555 123 4567");  // "+15551234567"
+convert("+33123456789");     // "01 23 45 67 89"
+convert("01 23 45 67 89");   // "+33123456789"
 
+// toE164/toNational/toE123/fromE123 are NANP-specific.
 toE164("(555) 123-4567");    // "+15551234567"
 toNational("+15551234567");  // "(555) 123-4567"
 toE123("+15551234567");      // "+1 555 123 4567"
@@ -68,12 +75,12 @@ library and `node --test` runs the compiled output.
 
 ## Status
 
-NANP conversion between E.164, national, and E.123 formatting, a streaming
-CLI, and a test suite covering round-trips and malformed input for both the
-converter and the line stream.
+Conversion between E.164, national, and E.123 formatting for NANP and
+France, a streaming CLI, and a test suite covering round-trips and malformed
+input for the converter and the line stream.
 
 ## Roadmap
 
-- extend beyond NANP to other countries' numbering plans
+- more numbering plans beyond NANP and France
 - CSV input/output mode (convert one column, pass the rest through)
 - `--format` flag to force output format instead of auto-detecting

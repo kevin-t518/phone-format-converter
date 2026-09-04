@@ -101,3 +101,30 @@ test("convert round-trips e164 -> e123 -> e164", () => {
 test("convert normalizes e123 input to e164", () => {
   assert.equal(convert("+1 202 555 0136"), "+12025550136");
 });
+
+test("detectFormat recognizes a FR e164 number", () => {
+  assert.equal(detectFormat("+33123456789"), "e164");
+});
+
+test("detectFormat recognizes a FR national number", () => {
+  assert.equal(detectFormat("01 23 45 67 89"), "national");
+});
+
+test("detectFormat recognizes a FR e123 number", () => {
+  assert.equal(detectFormat("+33 1 23 45 67 89"), "e123");
+});
+
+test("convert picks the right direction for FR numbers", () => {
+  assert.equal(convert("+33123456789"), "01 23 45 67 89");
+  assert.equal(convert("01 23 45 67 89"), "+33123456789");
+  assert.equal(convert("+33 1 23 45 67 89"), "+33123456789");
+});
+
+test("convert round-trips a FR number national -> e164 -> national", () => {
+  const original = "01 23 45 67 89";
+  assert.equal(convert(convert(original)), original);
+});
+
+test("convert rejects a FR national number with a leading-0 trunk digit", () => {
+  assert.throws(() => convert("00 23 45 67 89"), PhoneFormatError);
+});
