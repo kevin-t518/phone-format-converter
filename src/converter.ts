@@ -130,10 +130,66 @@ const FRANCE_PLAN: NumberingPlan = {
   fromE123: frFromE123,
 };
 
-// Every plan's regexes are anchored to that country's prefix (+1, +33, ...)
-// or national trunk format, so plans never ambiguously match each other's
-// input - trying them in order and stopping at the first match is safe.
-const PLANS: readonly NumberingPlan[] = [NANP_PLAN, FRANCE_PLAN];
+// Spain: +34 country code, 9-digit national significant number, no trunk
+// prefix (unlike NANP and France, the number you dial domestically is
+// exactly the national significant number). Geographic and mobile numbers
+// both fall in the 6-9 leading digit range; national and E.123 notation
+// both group the digits in threes, the E.123 form just adds the prefix.
+const ES_E164 = /^\+34([6-9]\d{8})$/;
+const ES_NATIONAL = /^([6-9]\d{2}) (\d{3}) (\d{3})$/;
+const ES_E123 = /^\+34\s([6-9]\d{2})\s(\d{3})\s(\d{3})$/;
+
+function esToE164(national: string): string {
+  const match = ES_NATIONAL.exec(national.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not a national-format ES number: "${national}"`);
+  }
+  const [, a, b, c] = match;
+  return `+34${a}${b}${c}`;
+}
+
+function esToNational(e164: string): string {
+  const match = ES_E164.exec(e164.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.164 ES number: "${e164}"`);
+  }
+  const digits = match[1];
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
+}
+
+function esToE123(e164: string): string {
+  const match = ES_E164.exec(e164.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.164 ES number: "${e164}"`);
+  }
+  const digits = match[1];
+  return `+34 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
+}
+
+function esFromE123(e123: string): string {
+  const match = ES_E123.exec(e123.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.123-format ES number: "${e123}"`);
+  }
+  const [, a, b, c] = match;
+  return `+34${a}${b}${c}`;
+}
+
+const SPAIN_PLAN: NumberingPlan = {
+  e164: ES_E164,
+  national: ES_NATIONAL,
+  e123: ES_E123,
+  toE164: esToE164,
+  toNational: esToNational,
+  toE123: esToE123,
+  fromE123: esFromE123,
+};
+
+// Every plan's regexes are anchored to that country's prefix (+1, +33, +34,
+// ...) or national trunk format, so plans never ambiguously match each
+// other's input - trying them in order and stopping at the first match is
+// safe.
+const PLANS: readonly NumberingPlan[] = [NANP_PLAN, FRANCE_PLAN, SPAIN_PLAN];
 
 export function detectFormat(input: string): Format {
   const trimmed = input.trim();

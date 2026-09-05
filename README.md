@@ -13,8 +13,8 @@ is really just E.164 with spaces instead of a compact digit string —
 normalizes down to E.164.
 
 Numbering plans are pluggable internally (see `NumberingPlan` in
-`src/converter.ts`), but only NANP (US/Canada) and France are wired up so
-far — see Roadmap for where this is headed.
+`src/converter.ts`), but only NANP (US/Canada), France, and Spain are wired
+up so far — see Roadmap for where this is headed.
 
 ## Library usage
 
@@ -27,6 +27,8 @@ convert("(555) 123-4567");   // "+15551234567"
 convert("+1 555 123 4567");  // "+15551234567"
 convert("+33123456789");     // "01 23 45 67 89"
 convert("01 23 45 67 89");   // "+33123456789"
+convert("+34912345678");     // "912 345 678"
+convert("912 345 678");      // "+34912345678"
 
 // toE164/toNational/toE123/fromE123 are NANP-specific.
 toE164("(555) 123-4567");    // "+15551234567"
@@ -75,12 +77,12 @@ library and `node --test` runs the compiled output.
 
 ## Status
 
-Conversion between E.164, national, and E.123 formatting for NANP and
-France, a streaming CLI, and a test suite covering round-trips and malformed
-input for the converter and the line stream.
+Conversion between E.164, national, and E.123 formatting for NANP, France,
+and Spain, a streaming CLI, and a test suite covering round-trips and
+malformed input for the converter and the line stream.
 
 ## Roadmap
 
-- more numbering plans beyond NANP and France
+- more numbering plans beyond NANP, France, and Spain
 - CSV input/output mode (convert one column, pass the rest through)
 - `--format` flag to force output format instead of auto-detecting

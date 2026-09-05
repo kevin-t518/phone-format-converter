@@ -128,3 +128,30 @@ test("convert round-trips a FR number national -> e164 -> national", () => {
 test("convert rejects a FR national number with a leading-0 trunk digit", () => {
   assert.throws(() => convert("00 23 45 67 89"), PhoneFormatError);
 });
+
+test("detectFormat recognizes an ES e164 number", () => {
+  assert.equal(detectFormat("+34912345678"), "e164");
+});
+
+test("detectFormat recognizes an ES national number", () => {
+  assert.equal(detectFormat("912 345 678"), "national");
+});
+
+test("detectFormat recognizes an ES e123 number", () => {
+  assert.equal(detectFormat("+34 912 345 678"), "e123");
+});
+
+test("convert picks the right direction for ES numbers", () => {
+  assert.equal(convert("+34912345678"), "912 345 678");
+  assert.equal(convert("912 345 678"), "+34912345678");
+  assert.equal(convert("+34 912 345 678"), "+34912345678");
+});
+
+test("convert round-trips an ES number national -> e164 -> national", () => {
+  const original = "912 345 678";
+  assert.equal(convert(convert(original)), original);
+});
+
+test("convert rejects an ES national number with a leading digit outside 6-9", () => {
+  assert.throws(() => convert("512 345 678"), PhoneFormatError);
+});
