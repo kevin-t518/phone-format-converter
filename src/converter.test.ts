@@ -155,3 +155,30 @@ test("convert round-trips an ES number national -> e164 -> national", () => {
 test("convert rejects an ES national number with a leading digit outside 6-9", () => {
   assert.throws(() => convert("512 345 678"), PhoneFormatError);
 });
+
+test("detectFormat recognizes a PT e164 number", () => {
+  assert.equal(detectFormat("+351212345678"), "e164");
+});
+
+test("detectFormat recognizes a PT national number", () => {
+  assert.equal(detectFormat("212 345 678"), "national");
+});
+
+test("detectFormat recognizes a PT e123 number", () => {
+  assert.equal(detectFormat("+351 212 345 678"), "e123");
+});
+
+test("convert picks the right direction for PT numbers", () => {
+  assert.equal(convert("+351212345678"), "212 345 678");
+  assert.equal(convert("212 345 678"), "+351212345678");
+  assert.equal(convert("+351 212 345 678"), "+351212345678");
+});
+
+test("convert round-trips a PT number national -> e164 -> national", () => {
+  const original = "212 345 678";
+  assert.equal(convert(convert(original)), original);
+});
+
+test("convert rejects a PT national number with a leading digit outside 2-3", () => {
+  assert.throws(() => convert("112 345 678"), PhoneFormatError);
+});

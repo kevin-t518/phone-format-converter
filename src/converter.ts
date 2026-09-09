@@ -2,7 +2,8 @@
 // toE164/toNational/toE123/fromE123 stay NANP-specific (that's the plan this
 // library was originally built around, and the one most callers still want
 // by name); detectFormat and convert are the plan-agnostic entry points that
-// try every registered plan in PLANS.
+// try every registered plan in PLANS. Currently NANP, France, Spain, and
+// Portugal are wired up.
 
 export type Format = "e164" | "national" | "e123";
 
@@ -185,11 +186,69 @@ const SPAIN_PLAN: NumberingPlan = {
   fromE123: esFromE123,
 };
 
+// Portugal: +351 country code, 9-digit national significant number, no
+// trunk prefix (like Spain, the number dialed domestically is exactly the
+// NSN). This plan only covers geographic (leading 2) and non-geographic/
+// VoIP (leading 3) numbers, not mobile (leading 9) - Portuguese mobile
+// numbers overlap the same leading-digit range Spain uses for its national
+// format (6-9), and PLANS relies on national-format regexes being mutually
+// exclusive across plans to detect unambiguously without a country prefix.
+// Grouping is threes, same as Spain.
+const PT_E164 = /^\+351([23]\d{8})$/;
+const PT_NATIONAL = /^([23]\d{2}) (\d{3}) (\d{3})$/;
+const PT_E123 = /^\+351\s([23]\d{2})\s(\d{3})\s(\d{3})$/;
+
+function ptToE164(national: string): string {
+  const match = PT_NATIONAL.exec(national.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not a national-format PT number: "${national}"`);
+  }
+  const [, a, b, c] = match;
+  return `+351${a}${b}${c}`;
+}
+
+function ptToNational(e164: string): string {
+  const match = PT_E164.exec(e164.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.164 PT number: "${e164}"`);
+  }
+  const digits = match[1];
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
+}
+
+function ptToE123(e164: string): string {
+  const match = PT_E164.exec(e164.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.164 PT number: "${e164}"`);
+  }
+  const digits = match[1];
+  return `+351 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
+}
+
+function ptFromE123(e123: string): string {
+  const match = PT_E123.exec(e123.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.123-format PT number: "${e123}"`);
+  }
+  const [, a, b, c] = match;
+  return `+351${a}${b}${c}`;
+}
+
+const PORTUGAL_PLAN: NumberingPlan = {
+  e164: PT_E164,
+  national: PT_NATIONAL,
+  e123: PT_E123,
+  toE164: ptToE164,
+  toNational: ptToNational,
+  toE123: ptToE123,
+  fromE123: ptFromE123,
+};
+
 // Every plan's regexes are anchored to that country's prefix (+1, +33, +34,
-// ...) or national trunk format, so plans never ambiguously match each
-// other's input - trying them in order and stopping at the first match is
-// safe.
-const PLANS: readonly NumberingPlan[] = [NANP_PLAN, FRANCE_PLAN, SPAIN_PLAN];
+// +351, ...) or national trunk format, so plans never ambiguously match
+// each other's input - trying them in order and stopping at the first
+// match is safe.
+const PLANS: readonly NumberingPlan[] = [NANP_PLAN, FRANCE_PLAN, SPAIN_PLAN, PORTUGAL_PLAN];
 
 export function detectFormat(input: string): Format {
   const trimmed = input.trim();
