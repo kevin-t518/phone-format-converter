@@ -1,6 +1,37 @@
 import { Transform, type TransformCallback } from "node:stream";
 import { convert, PhoneFormatError } from "./converter.js";
 
+// Shared plumbing for any Transform that processes a byte stream one
+// newline-delimited line at a time. Only the trailing partial line is ever
+// held in memory (`carry`), so input size has no bearing on memory use — a
+// 10 GB file and a 10 KB file cost the same to process. Subclasses just
+// decide what a line turns into.
+export abstract class LineSplittingTransform extends Transform {
+  private carry = "";
+
+  override _transform(chunk: Buffer, _encoding: BufferEncoding, callback: TransformCallback): void {
+    this.carry += chunk.toString("utf8");
+    const lines = this.carry.split("\n");
+    this.carry = lines.pop() ?? "";
+    for (const line of lines) {
+      this.processLine(line.replace(/\r$/, ""));
+    }
+    callback();
+  }
+
+  override _flush(callback: TransformCallback): void {
+    if (this.carry.length > 0) {
+      this.processLine(this.carry.replace(/\r$/, ""));
+      this.carry = "";
+    }
+    callback();
+  }
+
+  // Handle one line (CR already stripped) and this.push() whatever it
+  // becomes, including the trailing newline.
+  protected abstract processLine(line: string): void;
+}
+
 export interface LineConverterOptions {
   // Called when a line fails to parse. Return a replacement line to emit it
   // anyway, or null to drop the line and move on. If omitted, a bad line
@@ -9,11 +40,7 @@ export interface LineConverterOptions {
 }
 
 // Converts a line-delimited stream of phone numbers one line at a time.
-// Only the trailing partial line is ever held in memory (`carry`), so input
-// size has no bearing on memory use — a 10 GB file and a 10 KB file cost the
-// same to process.
-export class LineConverter extends Transform {
-  private carry = "";
+export class LineConverter extends LineSplittingTransform {
   private readonly onError?: LineConverterOptions["onError"];
 
   constructor(options: LineConverterOptions = {}) {
@@ -21,26 +48,7 @@ export class LineConverter extends Transform {
     this.onError = options.onError;
   }
 
-  override _transform(chunk: Buffer, _encoding: BufferEncoding, callback: TransformCallback): void {
-    this.carry += chunk.toString("utf8");
-    const lines = this.carry.split("\n");
-    this.carry = lines.pop() ?? "";
-    for (const line of lines) {
-      this.pushConverted(line);
-    }
-    callback();
-  }
-
-  override _flush(callback: TransformCallback): void {
-    if (this.carry.length > 0) {
-      this.pushConverted(this.carry);
-      this.carry = "";
-    }
-    callback();
-  }
-
-  private pushConverted(rawLine: string): void {
-    const line = rawLine.replace(/\r$/, "");
+  protected override processLine(line: string): void {
     if (line.trim() === "") {
       this.push("\n");
       return;

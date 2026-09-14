@@ -67,6 +67,25 @@ $ printf '+15551234567\n(555) 987-6543\n' | node dist/cli.js
 +15559876543
 ```
 
+### CSV mode
+
+Pass `--csv` to convert one column of a CSV file and leave the rest of each
+row untouched. `--column` picks the column (0-based, defaults to 0) and
+`--header` passes the first line through unconverted rather than trying to
+parse it as a phone number:
+
+```
+$ printf 'name,phone\nAlice,+15551234567\nBob,(555) 987-6543\n' | node dist/cli.js --csv --column 1 --header
+name,phone
+Alice,(555) 123-4567
+Bob,+15559876543
+```
+
+Quoting follows RFC 4180: fields are comma-separated, a field containing a
+comma or quote is wrapped in double quotes, and quotes inside it are doubled.
+As with the plain line mode, this assumes one record per line — a quoted
+field with an embedded newline isn't supported.
+
 Run the tests with:
 
 ```sh
@@ -80,11 +99,11 @@ library and `node --test` runs the compiled output.
 ## Status
 
 Conversion between E.164, national, and E.123 formatting for NANP, France,
-Spain, and Portugal, a streaming CLI, and a test suite covering round-trips
-and malformed input for the converter and the line stream.
+Spain, and Portugal, a streaming CLI with a CSV mode, and a test suite
+covering round-trips and malformed input for the converter, the line stream,
+and CSV parsing.
 
 ## Roadmap
 
 - more numbering plans beyond NANP, France, Spain, and Portugal
-- CSV input/output mode (convert one column, pass the rest through)
 - `--format` flag to force output format instead of auto-detecting
