@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { convert, detectFormat, toE164, toNational, toE123, fromE123, PhoneFormatError } from "./converter.js";
+import { convert, convertTo, detectFormat, toE164, toNational, toE123, fromE123, PhoneFormatError } from "./converter.js";
 
 test("detectFormat recognizes e164", () => {
   assert.equal(detectFormat("+15551234567"), "e164");
@@ -181,4 +181,31 @@ test("convert round-trips a PT number national -> e164 -> national", () => {
 
 test("convert rejects a PT national number with a leading digit outside 2-3", () => {
   assert.throws(() => convert("112 345 678"), PhoneFormatError);
+});
+
+test("convertTo forces national output regardless of input format", () => {
+  assert.equal(convertTo("+15551234567", "national"), "(555) 123-4567");
+  assert.equal(convertTo("(555) 123-4567", "national"), "(555) 123-4567");
+  assert.equal(convertTo("+1 555 123 4567", "national"), "(555) 123-4567");
+});
+
+test("convertTo forces e164 output regardless of input format", () => {
+  assert.equal(convertTo("+15551234567", "e164"), "+15551234567");
+  assert.equal(convertTo("(555) 123-4567", "e164"), "+15551234567");
+  assert.equal(convertTo("+1 555 123 4567", "e164"), "+15551234567");
+});
+
+test("convertTo forces e123 output regardless of input format", () => {
+  assert.equal(convertTo("+15551234567", "e123"), "+1 555 123 4567");
+  assert.equal(convertTo("(555) 123-4567", "e123"), "+1 555 123 4567");
+  assert.equal(convertTo("+1 555 123 4567", "e123"), "+1 555 123 4567");
+});
+
+test("convertTo works across a non-NANP plan", () => {
+  assert.equal(convertTo("01 23 45 67 89", "e123"), "+33 1 23 45 67 89");
+  assert.equal(convertTo("+33 1 23 45 67 89", "national"), "01 23 45 67 89");
+});
+
+test("convertTo throws PhoneFormatError on garbage input", () => {
+  assert.throws(() => convertTo("not a phone number", "e164"), PhoneFormatError);
 });

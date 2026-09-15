@@ -1,5 +1,5 @@
 import { Transform, type TransformCallback } from "node:stream";
-import { convert, PhoneFormatError } from "./converter.js";
+import { convert, convertTo, type Format, PhoneFormatError } from "./converter.js";
 
 // Shared plumbing for any Transform that processes a byte stream one
 // newline-delimited line at a time. Only the trailing partial line is ever
@@ -33,6 +33,10 @@ export abstract class LineSplittingTransform extends Transform {
 }
 
 export interface LineConverterOptions {
+  // Forces every line to the given output format instead of auto-detecting
+  // (E.164 <-> national, E.123 normalizing to E.164). Leave unset to
+  // auto-detect.
+  format?: Format;
   // Called when a line fails to parse. Return a replacement line to emit it
   // anyway, or null to drop the line and move on. If omitted, a bad line
   // aborts the stream.
@@ -41,10 +45,12 @@ export interface LineConverterOptions {
 
 // Converts a line-delimited stream of phone numbers one line at a time.
 export class LineConverter extends LineSplittingTransform {
+  private readonly format?: Format;
   private readonly onError?: LineConverterOptions["onError"];
 
   constructor(options: LineConverterOptions = {}) {
     super();
+    this.format = options.format;
     this.onError = options.onError;
   }
 
@@ -54,7 +60,7 @@ export class LineConverter extends LineSplittingTransform {
       return;
     }
     try {
-      this.push(convert(line) + "\n");
+      this.push((this.format ? convertTo(line, this.format) : convert(line)) + "\n");
     } catch (err) {
       if (err instanceof PhoneFormatError && this.onError) {
         const replacement = this.onError(err, line);

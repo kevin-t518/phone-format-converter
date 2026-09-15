@@ -19,9 +19,9 @@ are wired up so far — see Roadmap for where this is headed.
 ## Library usage
 
 ```ts
-import { convert, detectFormat, toE164, toNational, toE123, fromE123 } from "./src/converter.js";
+import { convert, convertTo, detectFormat, toE164, toNational, toE123, fromE123 } from "./src/converter.js";
 
-// convert() and detectFormat() try every registered numbering plan.
+// convert(), convertTo(), and detectFormat() try every registered numbering plan.
 convert("+15551234567");     // "(555) 123-4567"
 convert("(555) 123-4567");   // "+15551234567"
 convert("+1 555 123 4567");  // "+15551234567"
@@ -31,6 +31,12 @@ convert("+34912345678");     // "912 345 678"
 convert("912 345 678");      // "+34912345678"
 convert("+351212345678");    // "212 345 678"
 convert("212 345 678");      // "+351212345678"
+
+// convertTo() forces the output format instead of auto-detecting which
+// direction to convert - useful when you want E.123 out regardless of
+// whether the input was E.164 or national.
+convertTo("(555) 123-4567", "e123"); // "+1 555 123 4567"
+convertTo("+1 555 123 4567", "e123"); // "+1 555 123 4567"
 
 // toE164/toNational/toE123/fromE123 are NANP-specific.
 toE164("(555) 123-4567");    // "+15551234567"
@@ -67,6 +73,17 @@ $ printf '+15551234567\n(555) 987-6543\n' | node dist/cli.js
 +15559876543
 ```
 
+By default the CLI auto-detects each line's format and toggles it (E.164 <->
+national, E.123 normalizing to E.164), same as the library's `convert()`.
+Pass `--format` with `e164`, `national`, or `e123` to force every line to
+that output format instead:
+
+```
+$ printf '+15551234567\n(555) 987-6543\n' | node dist/cli.js --format e123
++1 555 123 4567
++1 555 987 6543
+```
+
 ### CSV mode
 
 Pass `--csv` to convert one column of a CSV file and leave the rest of each
@@ -86,6 +103,9 @@ comma or quote is wrapped in double quotes, and quotes inside it are doubled.
 As with the plain line mode, this assumes one record per line — a quoted
 field with an embedded newline isn't supported.
 
+`--format` works in CSV mode too, forcing just the phone number column to
+the given format and leaving the rest of the row untouched.
+
 Run the tests with:
 
 ```sh
@@ -99,11 +119,10 @@ library and `node --test` runs the compiled output.
 ## Status
 
 Conversion between E.164, national, and E.123 formatting for NANP, France,
-Spain, and Portugal, a streaming CLI with a CSV mode, and a test suite
-covering round-trips and malformed input for the converter, the line stream,
-and CSV parsing.
+Spain, and Portugal, a streaming CLI with a CSV mode and a `--format` flag to
+force output format, and a test suite covering round-trips and malformed
+input for the converter, the line stream, and CSV parsing.
 
 ## Roadmap
 
 - more numbering plans beyond NANP, France, Spain, and Portugal
-- `--format` flag to force output format instead of auto-detecting

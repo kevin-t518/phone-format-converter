@@ -2,12 +2,22 @@
 import { pipeline } from "node:stream/promises";
 import { LineConverter } from "./stream.js";
 import { CsvLineConverter } from "./csv.js";
-import type { PhoneFormatError } from "./converter.js";
+import type { Format, PhoneFormatError } from "./converter.js";
+
+const FORMATS: readonly Format[] = ["e164", "national", "e123"];
 
 interface CliOptions {
   csv: boolean;
   column: number;
   header: boolean;
+  format?: Format;
+}
+
+function parseFormat(value: string | undefined): Format {
+  if (value === undefined || !(FORMATS as readonly string[]).includes(value)) {
+    throw new Error(`--format expects one of ${FORMATS.join(", ")}, got "${value}"`);
+  }
+  return value as Format;
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -25,6 +35,8 @@ function parseArgs(argv: string[]): CliOptions {
       options.column = parsed;
     } else if (arg === "--header") {
       options.header = true;
+    } else if (arg === "--format") {
+      options.format = parseFormat(argv[++i]);
     } else {
       throw new Error(`unrecognized argument: "${arg}"`);
     }
@@ -39,8 +51,8 @@ async function main(): Promise<void> {
     return null;
   };
   const converter = options.csv
-    ? new CsvLineConverter({ column: options.column, header: options.header, onError })
-    : new LineConverter({ onError });
+    ? new CsvLineConverter({ column: options.column, header: options.header, format: options.format, onError })
+    : new LineConverter({ format: options.format, onError });
   await pipeline(process.stdin, converter, process.stdout);
 }
 

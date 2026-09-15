@@ -93,3 +93,8 @@ test("without onError a malformed phone column aborts the stream", async () => {
 test("without onError a missing column aborts the stream", async () => {
   await assert.rejects(() => run(["onlyonecolumn\n"], { column: 3 }), PhoneFormatError);
 });
+
+test("format option forces the phone column to the given format", async () => {
+  const output = await run(["+15551234567,Alice\n"], { format: "e123" });
+  assert.equal(output, "+1 555 123 4567,Alice\n");
+});

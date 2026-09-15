@@ -1,9 +1,9 @@
 // Per-country numbering plans live behind the NumberingPlan interface below.
 // toE164/toNational/toE123/fromE123 stay NANP-specific (that's the plan this
 // library was originally built around, and the one most callers still want
-// by name); detectFormat and convert are the plan-agnostic entry points that
-// try every registered plan in PLANS. Currently NANP, France, Spain, and
-// Portugal are wired up.
+// by name); detectFormat, convert, and convertTo are the plan-agnostic entry
+// points that try every registered plan in PLANS. Currently NANP, France,
+// Spain, and Portugal are wired up.
 
 export type Format = "e164" | "national" | "e123";
 
@@ -260,17 +260,36 @@ export function detectFormat(input: string): Format {
   throw new PhoneFormatError(`unrecognized phone number format: "${input}"`);
 }
 
+// Detects whichever format it's given, whichever registered numbering plan
+// it belongs to, and converts to the requested target format. Requesting the
+// format the input is already in just re-renders it through the owning
+// plan (a no-op for E.164, otherwise idempotent).
+export function convertTo(input: string, target: Format): string {
+  const trimmed = input.trim();
+  for (const plan of PLANS) {
+    let e164: string | null = null;
+    if (plan.e164.test(trimmed)) e164 = trimmed;
+    else if (plan.national.test(trimmed)) e164 = plan.toE164(input);
+    else if (plan.e123.test(trimmed)) e164 = plan.fromE123(input);
+    if (e164 === null) continue;
+    switch (target) {
+      case "e164":
+        return e164;
+      case "national":
+        return plan.toNational(e164);
+      case "e123":
+        return plan.toE123(e164);
+    }
+  }
+  throw new PhoneFormatError(`unrecognized phone number format: "${input}"`);
+}
+
 // Detects whichever format it's given, and whichever registered numbering
 // plan it belongs to, and converts it. E.164 and national are the two
 // directions this was built for, so they toggle between each other; E.123 is
 // just a spaced-out presentation of E.164, so it normalizes down to E.164
 // rather than toggling to national.
 export function convert(input: string): string {
-  const trimmed = input.trim();
-  for (const plan of PLANS) {
-    if (plan.e164.test(trimmed)) return plan.toNational(input);
-    if (plan.national.test(trimmed)) return plan.toE164(input);
-    if (plan.e123.test(trimmed)) return plan.fromE123(input);
-  }
-  throw new PhoneFormatError(`unrecognized phone number format: "${input}"`);
+  const format = detectFormat(input);
+  return convertTo(input, format === "e164" ? "national" : "e164");
 }

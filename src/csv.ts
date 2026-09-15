@@ -1,4 +1,4 @@
-import { PhoneFormatError, convert } from "./converter.js";
+import { PhoneFormatError, convert, convertTo, type Format } from "./converter.js";
 import { LineSplittingTransform } from "./stream.js";
 
 // Minimal RFC 4180-style CSV: comma-separated fields, double-quote as the
@@ -52,6 +52,10 @@ export interface CsvLineConverterOptions {
   column?: number;
   // If true, the first line is passed through unconverted (a header row).
   header?: boolean;
+  // Forces the phone number column to the given output format instead of
+  // auto-detecting (E.164 <-> national, E.123 normalizing to E.164). Leave
+  // unset to auto-detect.
+  format?: Format;
   // Called when a line fails to convert, either because the phone number
   // column doesn't parse or because the line doesn't have that many
   // columns. Return a replacement line to emit it anyway, or null to drop
@@ -64,6 +68,7 @@ export interface CsvLineConverterOptions {
 export class CsvLineConverter extends LineSplittingTransform {
   private readonly column: number;
   private readonly header: boolean;
+  private readonly format?: Format;
   private readonly onError?: CsvLineConverterOptions["onError"];
   private sawHeader = false;
 
@@ -71,6 +76,7 @@ export class CsvLineConverter extends LineSplittingTransform {
     super();
     this.column = options.column ?? 0;
     this.header = options.header ?? false;
+    this.format = options.format;
     this.onError = options.onError;
   }
 
@@ -93,7 +99,9 @@ export class CsvLineConverter extends LineSplittingTransform {
       return;
     }
     try {
-      fields[this.column] = convert(fields[this.column]);
+      fields[this.column] = this.format
+        ? convertTo(fields[this.column], this.format)
+        : convert(fields[this.column]);
       this.push(formatCsvLine(fields) + "\n");
     } catch (err) {
       if (err instanceof PhoneFormatError) {

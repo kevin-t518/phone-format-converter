@@ -65,3 +65,13 @@ test("onError returning null drops the line", async () => {
 test("without onError a malformed line aborts the stream", async () => {
   await assert.rejects(() => run(["not a number\n"]), PhoneFormatError);
 });
+
+test("format option forces output format instead of auto-detecting", async () => {
+  const output = await run(["+15551234567\n(555) 987-6543\n"], { format: "e123" });
+  assert.equal(output, "+1 555 123 4567\n+1 555 987 6543\n");
+});
+
+test("format option re-renders input already in the target format", async () => {
+  const output = await run(["+15551234567\n"], { format: "e164" });
+  assert.equal(output, "+15551234567\n");
+});
