@@ -183,6 +183,37 @@ test("convert rejects a PT national number with a leading digit outside 2-3", ()
   assert.throws(() => convert("112 345 678"), PhoneFormatError);
 });
 
+test("detectFormat recognizes an IT e164 number", () => {
+  assert.equal(detectFormat("+393123456789"), "e164");
+});
+
+test("detectFormat recognizes an IT national number", () => {
+  assert.equal(detectFormat("312 345 6789"), "national");
+});
+
+test("detectFormat recognizes an IT e123 number", () => {
+  assert.equal(detectFormat("+39 312 345 6789"), "e123");
+});
+
+test("convert picks the right direction for IT numbers", () => {
+  assert.equal(convert("+393123456789"), "312 345 6789");
+  assert.equal(convert("312 345 6789"), "+393123456789");
+  assert.equal(convert("+39 312 345 6789"), "+393123456789");
+});
+
+test("convert round-trips an IT number national -> e164 -> national", () => {
+  const original = "312 345 6789";
+  assert.equal(convert(convert(original)), original);
+});
+
+test("convert rejects an IT national number with a leading digit other than 3", () => {
+  assert.throws(() => convert("212 345 6789"), PhoneFormatError);
+});
+
+test("convert rejects an IT-looking number with only 9 digits", () => {
+  assert.throws(() => convert("512 345 678"), PhoneFormatError);
+});
+
 test("convertTo forces national output regardless of input format", () => {
   assert.equal(convertTo("+15551234567", "national"), "(555) 123-4567");
   assert.equal(convertTo("(555) 123-4567", "national"), "(555) 123-4567");

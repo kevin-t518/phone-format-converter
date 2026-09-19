@@ -13,8 +13,9 @@ is really just E.164 with spaces instead of a compact digit string —
 normalizes down to E.164.
 
 Numbering plans are pluggable internally (see `NumberingPlan` in
-`src/converter.ts`), but only NANP (US/Canada), France, Spain, and Portugal
-are wired up so far — see Roadmap for where this is headed.
+`src/converter.ts`), but only NANP (US/Canada), France, Spain, Portugal, and
+Italy (mobile numbers only) are wired up so far — see Roadmap for where this
+is headed.
 
 ## Library usage
 
@@ -31,6 +32,8 @@ convert("+34912345678");     // "912 345 678"
 convert("912 345 678");      // "+34912345678"
 convert("+351212345678");    // "212 345 678"
 convert("212 345 678");      // "+351212345678"
+convert("+393123456789");    // "312 345 6789"
+convert("312 345 6789");     // "+393123456789"
 
 // convertTo() forces the output format instead of auto-detecting which
 // direction to convert - useful when you want E.123 out regardless of
@@ -119,10 +122,11 @@ library and `node --test` runs the compiled output.
 ## Status
 
 Conversion between E.164, national, and E.123 formatting for NANP, France,
-Spain, and Portugal, a streaming CLI with a CSV mode and a `--format` flag to
-force output format, and a test suite covering round-trips and malformed
-input for the converter, the line stream, and CSV parsing.
+Spain, Portugal, and Italy, a streaming CLI with a CSV mode and a `--format`
+flag to force output format, and a test suite covering round-trips and
+malformed input for the converter, the line stream, and CSV parsing.
 
 ## Roadmap
 
-- more numbering plans beyond NANP, France, Spain, and Portugal
+- more numbering plans beyond NANP, France, Spain, Portugal, and Italy
+- Italy landline numbers (they keep the trunk 0, unlike mobile)

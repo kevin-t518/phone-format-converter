@@ -3,7 +3,7 @@
 // library was originally built around, and the one most callers still want
 // by name); detectFormat, convert, and convertTo are the plan-agnostic entry
 // points that try every registered plan in PLANS. Currently NANP, France,
-// Spain, and Portugal are wired up.
+// Spain, Portugal, and Italy are wired up.
 
 export type Format = "e164" | "national" | "e123";
 
@@ -244,11 +244,68 @@ const PORTUGAL_PLAN: NumberingPlan = {
   fromE123: ptFromE123,
 };
 
+// Italy: +39 country code, mobile numbers only (leading digit 3). Unlike
+// Spain and Portugal, Italian mobile numbers are 10 digits, not 9, and unlike
+// French landlines they carry no trunk prefix to strip - the number you dial
+// is exactly the E.164 national significant number with the + and country
+// code removed. Grouping is 3+3+4, which combined with the extra digit keeps
+// this plan's national/E.123 regexes from ever matching a 9-digit ES or PT
+// number.
+const IT_E164 = /^\+39(3\d{9})$/;
+const IT_NATIONAL = /^(3\d{2}) (\d{3}) (\d{4})$/;
+const IT_E123 = /^\+39\s(3\d{2})\s(\d{3})\s(\d{4})$/;
+
+function itToE164(national: string): string {
+  const match = IT_NATIONAL.exec(national.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not a national-format IT number: "${national}"`);
+  }
+  const [, a, b, c] = match;
+  return `+39${a}${b}${c}`;
+}
+
+function itToNational(e164: string): string {
+  const match = IT_E164.exec(e164.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.164 IT number: "${e164}"`);
+  }
+  const digits = match[1];
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+}
+
+function itToE123(e164: string): string {
+  const match = IT_E164.exec(e164.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.164 IT number: "${e164}"`);
+  }
+  const digits = match[1];
+  return `+39 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+}
+
+function itFromE123(e123: string): string {
+  const match = IT_E123.exec(e123.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.123-format IT number: "${e123}"`);
+  }
+  const [, a, b, c] = match;
+  return `+39${a}${b}${c}`;
+}
+
+const ITALY_PLAN: NumberingPlan = {
+  e164: IT_E164,
+  national: IT_NATIONAL,
+  e123: IT_E123,
+  toE164: itToE164,
+  toNational: itToNational,
+  toE123: itToE123,
+  fromE123: itFromE123,
+};
+
 // Every plan's regexes are anchored to that country's prefix (+1, +33, +34,
-// +351, ...) or national trunk format, so plans never ambiguously match
+// +351, +39, ...) or national trunk format, so plans never ambiguously match
 // each other's input - trying them in order and stopping at the first
 // match is safe.
-const PLANS: readonly NumberingPlan[] = [NANP_PLAN, FRANCE_PLAN, SPAIN_PLAN, PORTUGAL_PLAN];
+const PLANS: readonly NumberingPlan[] = [NANP_PLAN, FRANCE_PLAN, SPAIN_PLAN, PORTUGAL_PLAN, ITALY_PLAN];
 
 export function detectFormat(input: string): Format {
   const trimmed = input.trim();
