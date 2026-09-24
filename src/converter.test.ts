@@ -214,6 +214,37 @@ test("convert rejects an IT-looking number with only 9 digits", () => {
   assert.throws(() => convert("512 345 678"), PhoneFormatError);
 });
 
+test("detectFormat recognizes an IT landline e164 number", () => {
+  assert.equal(detectFormat("+390612345678"), "e164");
+});
+
+test("detectFormat recognizes an IT landline national number", () => {
+  assert.equal(detectFormat("06 1234 5678"), "national");
+});
+
+test("detectFormat recognizes an IT landline e123 number", () => {
+  assert.equal(detectFormat("+39 06 1234 5678"), "e123");
+});
+
+test("convert picks the right direction for IT landline numbers", () => {
+  assert.equal(convert("+390612345678"), "06 1234 5678");
+  assert.equal(convert("06 1234 5678"), "+390612345678");
+  assert.equal(convert("+39 06 1234 5678"), "+390612345678");
+});
+
+test("convert keeps the trunk 0 in e164 for an IT landline number", () => {
+  assert.equal(convert("02 1234 5678"), "+390212345678");
+});
+
+test("convert round-trips an IT landline number national -> e164 -> national", () => {
+  const original = "06 1234 5678";
+  assert.equal(convert(convert(original)), original);
+});
+
+test("convert rejects an IT landline area code outside 02/06", () => {
+  assert.throws(() => convert("03 1234 5678"), PhoneFormatError);
+});
+
 test("convertTo forces national output regardless of input format", () => {
   assert.equal(convertTo("+15551234567", "national"), "(555) 123-4567");
   assert.equal(convertTo("(555) 123-4567", "national"), "(555) 123-4567");

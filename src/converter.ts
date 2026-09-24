@@ -3,7 +3,7 @@
 // library was originally built around, and the one most callers still want
 // by name); detectFormat, convert, and convertTo are the plan-agnostic entry
 // points that try every registered plan in PLANS. Currently NANP, France,
-// Spain, Portugal, and Italy are wired up.
+// Spain, Portugal, and Italy (mobile and Rome/Milan landlines) are wired up.
 
 export type Format = "e164" | "national" | "e123";
 
@@ -301,11 +301,76 @@ const ITALY_PLAN: NumberingPlan = {
   fromE123: itFromE123,
 };
 
+// Italy landlines: unlike Italian mobile numbers (and unlike every other
+// plan above), the trunk "0" is part of the number even in E.164 - dialing
+// or storing an Italian fixed-line number without it reaches nobody. This
+// only covers Rome (02) and Milan (06), the two area codes short enough
+// (0 + one digit) that the subscriber number is a fixed 8 digits and the
+// whole thing fits one regex; the many 3- and 4-digit area codes used
+// elsewhere in Italy pull from a shorter, variable-length subscriber number
+// and aren't covered yet.
+const IT_LANDLINE_E164 = /^\+39(0[26]\d{8})$/;
+const IT_LANDLINE_NATIONAL = /^(0[26]) (\d{4}) (\d{4})$/;
+const IT_LANDLINE_E123 = /^\+39\s(0[26])\s(\d{4})\s(\d{4})$/;
+
+function itLandlineToE164(national: string): string {
+  const match = IT_LANDLINE_NATIONAL.exec(national.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not a national-format IT landline number: "${national}"`);
+  }
+  const [, area, a, b] = match;
+  return `+39${area}${a}${b}`;
+}
+
+function itLandlineToNational(e164: string): string {
+  const match = IT_LANDLINE_E164.exec(e164.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.164 IT landline number: "${e164}"`);
+  }
+  const digits = match[1];
+  return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6, 10)}`;
+}
+
+function itLandlineToE123(e164: string): string {
+  const match = IT_LANDLINE_E164.exec(e164.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.164 IT landline number: "${e164}"`);
+  }
+  const digits = match[1];
+  return `+39 ${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6, 10)}`;
+}
+
+function itLandlineFromE123(e123: string): string {
+  const match = IT_LANDLINE_E123.exec(e123.trim());
+  if (!match) {
+    throw new PhoneFormatError(`not an E.123-format IT landline number: "${e123}"`);
+  }
+  const [, area, a, b] = match;
+  return `+39${area}${a}${b}`;
+}
+
+const ITALY_LANDLINE_PLAN: NumberingPlan = {
+  e164: IT_LANDLINE_E164,
+  national: IT_LANDLINE_NATIONAL,
+  e123: IT_LANDLINE_E123,
+  toE164: itLandlineToE164,
+  toNational: itLandlineToNational,
+  toE123: itLandlineToE123,
+  fromE123: itLandlineFromE123,
+};
+
 // Every plan's regexes are anchored to that country's prefix (+1, +33, +34,
 // +351, +39, ...) or national trunk format, so plans never ambiguously match
 // each other's input - trying them in order and stopping at the first
 // match is safe.
-const PLANS: readonly NumberingPlan[] = [NANP_PLAN, FRANCE_PLAN, SPAIN_PLAN, PORTUGAL_PLAN, ITALY_PLAN];
+const PLANS: readonly NumberingPlan[] = [
+  NANP_PLAN,
+  FRANCE_PLAN,
+  SPAIN_PLAN,
+  PORTUGAL_PLAN,
+  ITALY_PLAN,
+  ITALY_LANDLINE_PLAN,
+];
 
 export function detectFormat(input: string): Format {
   const trimmed = input.trim();
